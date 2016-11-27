@@ -21,19 +21,33 @@ class Preprocessor():
         f = open(file,'r')
         for line in f:
             self._stops.add(line.strip())
-    
+
+    def getLine(self, line):
+        res = ''
+        for token in self.getToken(line):
+            res = res + ' ' + token
+        return res
+
     def getToken(self, line):
-        regex_word = re.compile('[a-z]+')
-        words = regex_word.findall(line.lower())
+        regex_word = re.compile('\w+')
+        words = regex_word.findall(line)
         if self.isReversed:
-            words.reverse()
-        
+            words.reverse()        
         for token in words:
             if token not in self._stops:
                 if self._isStem:
                     yield PorterStemmer().stem(token)
                 else:
                     yield token
+
+    def getWord(self, word):
+        if word not in self._stops:
+            if self._isStem:
+                return PorterStemmer().stem(word)
+            else:
+                return word
+        else:
+            return None
 
 class Three():
     def __init__(self):
@@ -73,9 +87,11 @@ class WordDict(dict):
             self.__p = self.__times / levelTimes
         subLevelTimes = 0
         for word in self:
-            subLevelTimes += self[word].get_times()
-        for word in self:            
-            self[word].compute(subLevelTimes)
+            if word not in ['START', 'END']: 
+                subLevelTimes += self[word].get_times()
+        for word in self:
+            if word not in ['START', 'END']:
+                self[word].compute(subLevelTimes)
         
     def add(self):
         self.__times += 1
@@ -133,6 +149,8 @@ class TrigramModel(dict):
        
     # get probability value for bigram or trigram [ RECOMMANDED ]
     def get_p(self, one, two, three = None):
+        if one is None or two is None:
+            return 0
         if one not in self:
             return 0
         if two not in self[one]:
@@ -143,28 +161,39 @@ class TrigramModel(dict):
             return self[one][two][three].get_p() # trigram
         else:
             return self[one][two].get_p() # bigram
-        
+    
+    def update_line(self, line):
+        one = None
+        two = None
+        line = 'START START ' + line.lower() + ' END END'
+        for word in self.__pre.getToken(line):
+            if two:
+                if two not in self:
+                    self[two] = WordDict(1)
+                self[two][word] = WordDict(2)
+                self[two][word].add()
+            if one:
+                if word not in self[one][two]:
+                    self[one][two][word] = Three()
+                self[one][two][word].add()
+            one = two
+            two = word
+    
     def update_file(self, filename):
-        print('<update_file....>:\n%s' % filename)
+        print('<updating from file....>:\n%s' % filename)
         data = ReadData(filename, True, None)
-        for line in data:
-            one = None
-            two = None
-            for word in self.__pre.getToken(line):
-                if two:
-                    if two not in self:
-                        self[two] = WordDict(1)
-                    self[two][word] = WordDict(2)
-                    self[two][word].add()
-                if one:
-                    if word not in self[one][two]:
-                        self[one][two][word] = Three()
-                    self[one][two][word].add()
-                one = two
-                two = word
-                
+        for line in data:            
+            # question lines in the training data
+            R21 = re.compile('^21 (.+)\t+([\S]+)\t+([\S]+)$')
+            Qline = R21.search(line)
+            if Qline:
+                Question = Qline.group(1)
+                CorrectAnswer = Qline.group(2)
+                line = Question.replace('XXXXX', CorrectAnswer)
+            self.update_line(line)
+            
     def store(self):
-        filename = self._getFileName('Trigram')
+        filename = self._getFileName('.\\Trigram Data\\Trigram')
         print('<storing...> : \n%s' % filename)
         try:
             indexfile = open(filename,'w')
@@ -194,12 +223,12 @@ class TrigramModel(dict):
         print('<< stored >>')
 
     def compute(self):
-        print('<computing...>')
+#        print('<computing...>')
         for one in self:
             self[one].compute(None)
     
     def load(self):
-        filename = self._getFileName('Trigram')
+        filename = self._getFileName('.\\Trigram Data\\Trigram')
         print('<loading...> : \n%s' % filename)
         try:
             indexfile = open(filename,'r')
@@ -214,45 +243,46 @@ class TrigramModel(dict):
                 if one not in self:
                     self[one] = WordDict(1)
                 self[one].load(0, twothree)
-        indexfile.close()
-        print('<loaded>')
+        indexfile.close()        
         self.compute()
+        print('<loaded>')
+
+def Run_buildData(isStop, isStem, isReversed):
+    trainingFiles = [
+#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_test.txt',
+#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_train.txt'],
+#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_valid.txt',
+                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_CN_train.txt',
+                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_NE_train.txt',
+                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_P_train.txt',
+                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_V_train.txt'
+                    ]
+    myTrigram = TrigramModel(isStop = isStop, isStem = isStem, isReversed = isReversed)
+    for file in trainingFiles:
+        myTrigram.update_file(file)
+    myTrigram.compute()
+    myTrigram.store()
+    print('<<done!>>')
+    
+    # Data test
+#    print(test.get_p('our', 'family')) # recommanded way for bigram p
+#    print(test.get_p('my', 'dear')) # recommanded way for trigram p 
+#    print(test['our']['family'].get_times())
 
 
-trainingFileName1 = '..\..\..\..\CBTest Datasets\CBTest\data\cbt_train.txt'
-trainingFileName2 = '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_CN_train.txt'
-trainingFileName3 = '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_NE_train.txt'
-trainingFileName4 = '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_P_train.txt'
-trainingFileName5 = '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_V_train.txt'
+#Run_buildData(isStop = True, isStem = True, isReversed = False)
+#Run_buildData(isStop = True, isStem = True, isReversed = True)
+#Run_buildData(isStop = True, isStem = False, isReversed = False)
+#Run_buildData(isStop = True, isStem = False, isReversed = True)
+#Run_buildData(isStop = False, isStem = True, isReversed = False)
+#Run_buildData(isStop = False, isStem = True, isReversed = True)
+#Run_buildData(isStop = False, isStem = False, isReversed = False)
+#Run_buildData(isStop = False, isStem = False, isReversed = True)
 
-test = TrigramModel(isStop = True, isStem = True, isReversed = False)
-test.update_file(trainingFileName1)
-test.compute()
-test.store()
-print(test.get_p('pu','pu')) # recommanded way for bigram p
-print(test.get_p('pu','pum')) # recommanded way for trigram p 
-print(test['pu']['pu'].get_times()) 
-print(test['pu']['pu'].get_p())
-test.update_file(trainingFileName2)
-test.update_file(trainingFileName3)
-test.update_file(trainingFileName4)
-test.update_file(trainingFileName5)
-
-#print('<<done!>>')
 
 ### loading result test
-#test2 = TrigramModel(isStop = True, isStem = True, isReversed = True)
-##test2.load_idword()
+#test2 = TrigramModel(isStop = False, isStem = False, isReversed = False)
 #test2.load()
-#### mattock{blow:1[farther:1]mountain:1[search:1]}
-#print(test2['mattock']['blow'].get_times()) 
-#print(test2['mattock']['blow'].get_p())
-#### pu{pu:1[pu:1|pum:1]pum:1[poh:1]}
-#print(test2['pu']['pu'].get_times())
-#print(test2['pu']['pu'].get_p())
-#print(test2['pu']['pu']['pum'].get_times())
-#print(test2['pu']['pu']['pum'].get_p())
-#print(test2['pu']['pum']['poh'].get_p())
-##print(test2['pu']['pu']['poh'].get_p()) # not existed
-#print(test2.get_p('pu','pu')) # recommanded way for bigram p
-#print(test2.get_p('pu','pum')) # recommanded way for trigram p 
+#print(test2.get_p('our', 'family')) # recommanded way for bigram p
+#print(test2.get_p('my', 'dear')) # recommanded way for trigram p 
+#print(test2['our']['family'].get_times())
