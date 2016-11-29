@@ -20,8 +20,13 @@ nlp_settings = {'annotators': 'tokenize,ssplit,pos,ner', "outputFormat": "text"}
 def get_nlp_annotate(nlp, text, candidates=None, ne=True):
     output = nlp.annotate(text, properties=nlp_settings)
     re_annotate_tag = re.compile('\[Text=(\w+).*PartOfSpeech=(\w+).*NamedEntityTag=(\w+)')
-    #print(identify_annotate_tag(output, re_annotate_tag, missing_word))
-    print(identify_target_tag(nlp, text, candidates, re_annotate_tag))
+    pos_arround_missing_word = identify_annotate_tag(output, re_annotate_tag, missing_word)
+    if candidates:
+        pos_of_target = identify_target_tag(nlp, text, candidates, re_annotate_tag)
+        return(pos_arround_missing_word, pos_of_target)
+    else:
+        return(pos_arround_missing_word)
+    
     
 def identify_annotate_tag(nlp_output, regex, target):
     pos_list_full = []
@@ -31,6 +36,7 @@ def identify_annotate_tag(nlp_output, regex, target):
     for line in nlp_output.splitlines():
         m = regex.match(line)
         if m:
+            # delete later
             print(m.groups())
             if re_symbols.match(m.group(1)):
                 continue
@@ -65,4 +71,5 @@ def identify_missing_word_pos(text):
     
     
 if __name__ == '__main__':
-    get_nlp_annotate(nlp, text, candidates)
+    a, b = get_nlp_annotate(nlp, text, candidates)
+    print(dict(zip(candidates,b)))
