@@ -16,7 +16,7 @@ candidates = ('daughter', 'husband', 'man', 'manners', 'past', 'skull', 'sky', '
 missing_word = 'XXXXX'
 nlp_settings = {'annotators': 'tokenize,ssplit,pos,ner', "outputFormat": "text"}
 
-def get_all_nlp_tag(nlp=nlp, text):
+def get_all_nlp_tag(text, nlp=nlp):
     output = nlp.annotate(text, properties=nlp_settings)
     re_annotate_tag = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
     pos_list = []
@@ -30,12 +30,12 @@ def get_all_nlp_tag(nlp=nlp, text):
     return(pos_list)
 
 
-def get_nlp_annotate(nlp=nlp, text, candidates=None, ne=True):
+def get_nlp_annotate(text, nlp=nlp, candidates=None):
     output = nlp.annotate(text, properties=nlp_settings)
     re_annotate_tag = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
     pos_arround_missing_word = identify_annotate_tag(output, re_annotate_tag, missing_word)
     if candidates:
-        pos_of_target = identify_target_tag(nlp, text, candidates, re_annotate_tag)
+        pos_of_target = identify_target_tag(text, candidates, re_annotate_tag, nlp)
         return(pos_arround_missing_word, pos_of_target)
     else:
         return(pos_arround_missing_word)
@@ -63,7 +63,7 @@ def identify_annotate_tag(nlp_output, regex, target):
     return pos_list
 
     
-def identify_target_tag(nlp=nlp, text, candidates, regex):
+def identify_target_tag(text, candidates, regex, nlp=nlp):
     pos_list = []
     missing_word_idx = identify_missing_word_pos(text) + 2
     for word in candidates:
@@ -84,11 +84,10 @@ def identify_missing_word_pos(text):
             
             
 def demo():
-    a, b = get_nlp_annotate(nlp, text, candidates)
+    a, b = get_nlp_annotate(text=text, nlp=nlp, candidates=candidates)
     print(list(zip(candidates,b)))
-    a = get_all_nlp_tag(nlp, text)
+    a = get_all_nlp_tag(text, nlp=nlp)
     print(a)
-    
     
 if __name__ == '__main__':
     demo()
