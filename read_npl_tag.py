@@ -16,7 +16,7 @@ candidates = ('daughter', 'husband', 'man', 'manners', 'past', 'skull', 'sky', '
 missing_word = 'XXXXX'
 nlp_settings = {'annotators': 'tokenize,ssplit,pos,ner', "outputFormat": "text"}
 
-def get_all_nlp_tag(text, nlp=nlp, paired_output=False):
+def get_all_nlp_tag(text, paired_output=False, nlp=nlp):
     output = nlp.annotate(text, properties=nlp_settings)
     re_annotate_tag = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
     pos_list = []
@@ -33,7 +33,7 @@ def get_all_nlp_tag(text, nlp=nlp, paired_output=False):
     return(pos_list)
 
 
-def get_nlp_annotate(text, nlp=nlp, candidates=None):
+def get_nlp_annotate(text, candidates=None, nlp=nlp):
     output = nlp.annotate(text, properties=nlp_settings)
     re_annotate_tag = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
     pos_arround_missing_word = identify_annotate_tag(output, re_annotate_tag, missing_word)
@@ -88,7 +88,7 @@ def identify_missing_word_pos(text):
             
 def demo():
     # Get the POS info arround XXXXX and of candidates.
-    a, b = get_nlp_annotate(text=text, nlp=nlp, candidates=candidates)
+    a, b = get_nlp_annotate(text=text, candidates=candidates, nlp=nlp)
     print(list(zip(candidates,b)))
     # Get the POS info for a sentence.
     a = get_all_nlp_tag(text, nlp=nlp, paired_output=True)
