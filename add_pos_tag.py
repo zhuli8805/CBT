@@ -5,7 +5,7 @@ Created on Wed Nov 30 23:46:54 2016
 @author: Yixuan Li
 """
 
-import re
+import re, sys
 from pycorenlp import StanfordCoreNLP
 from os.path import basename, join, splitext
 from glob import glob
@@ -17,6 +17,9 @@ re_nlp_annotate = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
 re_punct = re.compile('^[^a-zA-Z]+$')
 
 pattern = 'cbtest_CN*'
+if len(sys.argv) > 1:
+    pattern = sys.argv[1]
+    
 data_path = 'D:\Yixuan Li\Documents\TUoS\Industrial Team Project\CBTest\CBTest\data'
 file_in_list = glob(join(data_path, pattern))
 file_out_list = []
@@ -24,21 +27,23 @@ for f_in in file_in_list:
     base = basename(f_in)
     f_out = join(data_path, splitext(base)[0]+'_WP'+splitext(base)[1])
     file_out_list.append(f_out)
+    
+
+def demo():
+    for f_in, f_out in zip(file_in_list, file_out_list):
+        print(f_in+'\n'+f_out)
 
 
 def glob_CBT_files():
     for f_in, f_out in zip(file_in_list, file_out_list):
         with open(f_in, 'r') as file_in:
             with open(f_out, 'w') as file_out:
+                print('Start processing ' + f_in)
                 read_and_write(file_in, file_out)
 
 
 def read_and_write(file_in, file_out):
-    num = 0
     for line in file_in:
-        num += 1
-        if num == 2244:
-            return 0 
         if line.split():
             output_list = get_nlp_tag(line)
             file_out.write('\t'.join(output_list))
@@ -92,6 +97,7 @@ def identify_missing_word_pos(splitted_content):
 
 
 def main():
+    #glob_CBT_files()
     pass
 
 if __name__ == '__main__':
