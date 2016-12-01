@@ -7,6 +7,8 @@ Created on Wed Nov 30 23:46:54 2016
 
 import re
 from pycorenlp import StanfordCoreNLP
+from os.path import basename, join, splitext
+from glob import glob
 
 missing_word = 'XXXXX'
 corenlp = StanfordCoreNLP('http://localhost:9000')
@@ -14,13 +16,22 @@ corenlp_settings = {'annotators': 'tokenize,ssplit,pos,ner', "outputFormat": "te
 re_nlp_annotate = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
 re_punct = re.compile('^[^a-zA-Z]+$')
 
-file_1 = 'cbtest_CN_test_2500ex.txt'
-file_2 = 'test_new.txt'
+pattern = 'cbtest_CN*'
+data_path = 'D:\Yixuan Li\Documents\TUoS\Industrial Team Project\CBTest\CBTest\data'
+file_in_list = glob(join(data_path, pattern))
+file_out_list = []
+for f_in in file_in_list:
+    base = basename(f_in)
+    f_out = join(data_path, splitext(base)[0]+'_WP'+splitext(base)[1])
+    file_out_list.append(f_out)
+
 
 def glob_CBT_files():
-    with open(file_1, 'r') as file_in:
-        with open(file_2, 'w') as file_out:
-            read_and_write(file_in, file_out)
+    for f_in, f_out in zip(file_in_list, file_out_list):
+        with open(f_in, 'r') as file_in:
+            with open(f_out, 'w') as file_out:
+                read_and_write(file_in, file_out)
+
 
 def read_and_write(file_in, file_out):
     num = 0
@@ -33,6 +44,7 @@ def read_and_write(file_in, file_out):
             file_out.write('\t'.join(output_list))
         file_out.write('\n')
 
+
 def get_nlp_tag(text):
     text_list = text.split()
     num = int(text_list.pop(0))
@@ -44,7 +56,6 @@ def get_nlp_tag(text):
     content_pair = []
     answer_pair = []
     candidates_pair = []
-    candidates_pair_dict = {}
     output_list = [str(num)]
     for line in output.splitlines():
         m = re_nlp_annotate.match(line)
@@ -59,6 +70,7 @@ def get_nlp_tag(text):
         answer_pair.append(':'.join([answer,candidates_pair_dict[answer]]))
         output_list += answer_pair + candidates_pair
     return output_list
+
 
 def identify_target_tag(content, splitted_content, candidates):
     target_tag = {}
@@ -78,8 +90,9 @@ def identify_missing_word_pos(splitted_content):
         if splitted_content[i] == missing_word:
             return i
 
+
 def main():
-    glob_CBT_files()
+    pass
 
 if __name__ == '__main__':
     main()
