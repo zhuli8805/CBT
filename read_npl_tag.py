@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov 29 15:35:24 2016
-
 @author: Yixuan Li
 """
 
@@ -32,7 +31,6 @@ def get_all_nlp_tag(text, paired_output=False, nlp=nlp):
                 pos_list.append(m.group(2))
     return(pos_list)
 
-
 def get_nlp_annotate(text, candidates=None, nlp=nlp):
     output = nlp.annotate(text, properties=nlp_settings)
     re_annotate_tag = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
@@ -42,7 +40,6 @@ def get_nlp_annotate(text, candidates=None, nlp=nlp):
         return(pos_arround_missing_word, pos_of_target)
     else:
         return(pos_arround_missing_word)
-    
     
 def identify_annotate_tag(nlp_output, regex, target):
     pos_list_full = []
@@ -64,7 +61,6 @@ def identify_annotate_tag(nlp_output, regex, target):
         elif i != target_index:
             pos_list.append(pos_list_full[i])
     return pos_list
-
     
 def identify_target_tag(text, candidates, regex, nlp=nlp):
     pos_list = []
@@ -78,13 +74,11 @@ def identify_target_tag(text, candidates, regex, nlp=nlp):
                 pos_list.append(m.group(2))
     return pos_list
     
-    
 def identify_missing_word_pos(text):
     splitted_text = text.split(' ')
     for i in range(len(splitted_text)-1):
         if splitted_text[i] == missing_word:
             return i
-            
             
 def demo():
     # Get the POS info arround XXXXX and of candidates.
@@ -93,6 +87,35 @@ def demo():
     # Get the POS info for a sentence.
     a = get_all_nlp_tag(text, nlp=nlp, paired_output=True)
     print(a)
-    
+
+def getToken_wordpos(line):
+    wordpos_pairs = get_all_nlp_tag(line, True)
+    for wordpos in wordpos_pairs:
+        word, pos = wordpos
+        yield word, pos
+            
 if __name__ == '__main__':
-    demo()
+#    demo()
+    a, b = get_nlp_annotate(text, candidates)
+    print(dict(zip(candidates,b)))
+    print('a===', a)
+    print('b===', b)
+    c = get_nlp_annotate(text)
+    print('c===', c)
+    d = get_all_nlp_tag('this is a fucking apple')
+    print('d===', d)
+    e = get_all_nlp_tag('this is a fucking apple', True)
+    print('e===', e)
+    e.reverse()
+    print('f===', e)
+    pairs = []
+    for pair in getToken_wordpos('this is a fucking apple'):
+        pairs = pairs + [pair]
+    print ('g===', pairs)
+    pair_START = [['START', 'START']]
+    pair_END = [['END', 'END']]
+    pairs = pair_START + pair_START + pairs + pair_END + pair_END
+    print('123', pairs)
+    for pair in pairs:
+        word, pos = pair
+        print ('h===',word,'-----',pos)

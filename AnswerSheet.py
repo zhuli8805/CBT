@@ -5,13 +5,17 @@ Created on Tue Nov 22 16:36:45 2016
 @author: ZHULI
 """
 
+import os, time, re
+
 class AnswerSheet():
-    def __init__(self, filename):
-        self.testName = filename
+    def __init__(self, isStop, isStem, testFileName = None):
+        self.__testName = testFileName
         self.__correctAnswer = None
         self.__totalQuestionNum = 0
         self.__correctAnswerNum = 0
         self.__answersMade = 0
+        self.__isStop = isStop
+        self.__isStem = isStem
         
     def newQuestion(self, correctAnswer):
         self.__correctAnswer = correctAnswer
@@ -42,11 +46,40 @@ class AnswerSheet():
                   self.__correctAnswerNum, self.__answersMade))
         else:
             print('No question was attempted')
+       
+    def set_filename(self, filename):
+        Regex_testname = re.compile('\\\([\w_0-9]*?).txt')
+        res = Regex_testname.findall(filename)
+        if res:
+            self.__testName = res[0]
+        else:
+            self.__testName = filename
+    
+    def printToFile(self, comments, filename = 'Results.txt'):
+        if os.path.isfile('Results.txt') is False:
+            file = open(filename, 'w')    
+            print('%24s\t%5s\t%5s\t%s\t\t\t\t\t\t%5s\t\t\t%16s\t\t\t%8s'
+            %('Time', 'isStop', 'isStem', 'Overall', 'Attempted', 'Test Name', 'Comments'), file = file)
+        else:
+            file = open(filename, 'a')
+        mytime = time.ctime()
+        overall = None
+        attempted = None
+        if self.__totalQuestionNum > 0:
+            overall = self.__correctAnswerNum/self.__totalQuestionNum * 100
+        if self.__answersMade > 0:
+            attempted = self.__correctAnswerNum/self.__answersMade * 100
         
-    def reset(self):
+        print('%24s\t%5s\t%5s\t%3.5f%%\t(%d/%d)\t\t%3.5f%%\t(%d/%d)\t' 
+        % (mytime, self.__isStop, self.__isStem, overall, self.__correctAnswerNum, self.__totalQuestionNum ,attempted, self.__correctAnswerNum, self.__answersMade)
+        + self.__testName +'  '+ comments , file = file)
+        file.close()
+        
+    def reset(self, testFileName = None):
         self.__correctAnswer = None
         self.__totalQuestionNum = 0
         self.__correctAnswerNum = 0
+        self.__testName = testFileName
         
     def get_score(self):
         overallScore = None

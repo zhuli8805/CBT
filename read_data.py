@@ -5,7 +5,6 @@ Created on Tue Nov 22 15:36:29 2016
 @author: ZHULI
 """
 import re
-from AnswerSheet import AnswerSheet
 
 class ReadData():
     def __init__(self, filename, isTraining, pAnswerSheet):
@@ -20,11 +19,19 @@ class ReadData():
         else:
             for line in self._ReadTestData():
                 yield line
-
+    
+    def countLines(self):
+        i = 0 
+        TrainingData = open(self.filename,'r')
+        for line in TrainingData:
+            i += 1
+        TrainingData.close()
+        return i
+        
     def _ReadTrainingData(self):      
 #        print('Reading Training Data :\n %s' % (self.filename))
         TrainingData = open(self.filename,'r')
-        Regex_BookTitle = re.compile('_BOOK_TITLE_ : (.+).txt.out')
+#        Regex_BookTitle = re.compile('_BOOK_TITLE_ : (.+).txt.out')
         for line in TrainingData:
             # text line
             yield line

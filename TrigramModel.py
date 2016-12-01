@@ -5,49 +5,9 @@ Created on Tue Nov 22 14:39:42 2016
 @author: ZHULI
 """
 
-import re
+import re, time
 from read_data import ReadData
-from nltk.stem import PorterStemmer
-
-class Preprocessor():
-    def __init__(self, isReversed = False, isStop = False, isStem = False):
-        self.isReversed = isReversed
-        self._isStem = isStem
-        self._stops = set()
-        if isStop:
-            self.readStopList()            
-        
-    def readStopList(self, file = 'stop_list.txt'):
-        f = open(file,'r')
-        for line in f:
-            self._stops.add(line.strip())
-
-    def getLine(self, line):
-        res = ''
-        for token in self.getToken(line):
-            res = res + ' ' + token
-        return res
-
-    def getToken(self, line):
-        regex_word = re.compile('\w+')
-        words = regex_word.findall(line)
-        if self.isReversed:
-            words.reverse()        
-        for token in words:
-            if token not in self._stops:
-                if self._isStem:
-                    yield PorterStemmer().stem(token)
-                else:
-                    yield token
-
-    def getWord(self, word):
-        if word not in self._stops:
-            if self._isStem:
-                return PorterStemmer().stem(word)
-            else:
-                return word
-        else:
-            return None
+from Preprocessor import Preprocessor
 
 class Three():
     def __init__(self):
@@ -127,9 +87,9 @@ class WordDict(dict):
         return self.__times
 
 class TrigramModel(dict):
-    def __init__(self, default = None, isReversed = False, isStop = False, isStem = False):
+    def __init__(self, isReversed = False, isStop = False, isStem = False, default = None):
         dict.__init__(self)
-        self.default = default  
+        self.default = default
         self.isReversed = isReversed
         self.isStop = isStop
         self.isStem = isStem
@@ -182,18 +142,33 @@ class TrigramModel(dict):
     def update_file(self, filename):
         print('<updating from file....>:\n%s' % filename)
         data = ReadData(filename, True, None)
-        for line in data:            
+        TotalLines = data.countLines()
+        print('[Total Lines] = ', TotalLines)
+        stepLength = TotalLines/100
+        nextLineNo = TotalLines/1000
+        iLine = 0
+        starttime = time.time()
+        for line in data:    
+            iLine += 1
+            # show progress
+            if iLine >= nextLineNo:
+                timesofar = (time.time() - starttime)
+                timeleft = (timesofar * (TotalLines-iLine) / iLine)/60    
+                timesofar = timesofar / 60
+                print('[Progress]: %3.2f%% (%d/%d)  %.2fmins  %.2fmins' % (iLine/TotalLines*100, iLine, TotalLines, timesofar, timeleft))                
+                nextLineNo += stepLength              
             # question lines in the training data
             R21 = re.compile('^21 (.+)\t+([\S]+)\t+([\S]+)$')
             Qline = R21.search(line)
             if Qline:
                 Question = Qline.group(1)
                 CorrectAnswer = Qline.group(2)
-                line = Question.replace('XXXXX', CorrectAnswer)
+                # make questions in the training data to be normal sentense
+                line = Question.replace('XXXXX', CorrectAnswer) 
             self.update_line(line)
             
-    def store(self):
-        filename = self._getFileName('.\\Trigram Data\\Trigram')
+    def store(self, initFileName = '.\\Trigram Data\\Trigram'):
+        filename = self._getFileName(initFileName)
         print('<storing...> : \n%s' % filename)
         try:
             indexfile = open(filename,'w')
@@ -227,8 +202,8 @@ class TrigramModel(dict):
         for one in self:
             self[one].compute(None)
     
-    def load(self):
-        filename = self._getFileName('.\\Trigram Data\\Trigram')
+    def load(self, initFileName = '.\\Trigram Data\\Trigram'):
+        filename = self._getFileName(initFileName)
         print('<loading...> : \n%s' % filename)
         try:
             indexfile = open(filename,'r')
@@ -243,11 +218,13 @@ class TrigramModel(dict):
                 if one not in self:
                     self[one] = WordDict(1)
                 self[one].load(0, twothree)
-        indexfile.close()        
+        indexfile.close()
         self.compute()
         print('<loaded>')
+    
+    def answer
 
-def Run_buildData(isStop, isStem, isReversed):
+def Run_BuildData(isStop, isStem, isReversed):
     trainingFiles = [
 #                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_test.txt',
 #                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_train.txt'],
@@ -257,6 +234,7 @@ def Run_buildData(isStop, isStem, isReversed):
                      '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_P_train.txt',
                      '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_V_train.txt'
                     ]
+
     myTrigram = TrigramModel(isStop = isStop, isStem = isStem, isReversed = isReversed)
     for file in trainingFiles:
         myTrigram.update_file(file)
