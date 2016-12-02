@@ -4,7 +4,7 @@ Created on Thu Dec  1 11:08:32 2016
 
 @author: ZHULI
 """
-import re, sys
+import re
 from nltk.stem import PorterStemmer
 from read_npl_tag import get_nlp_annotate, get_all_nlp_tag
 
@@ -33,18 +33,23 @@ class Preprocessor():
         if self.isReversed:
             words.reverse()
         for token in words:
+            if token in ['START', 'END']:
+                yield token
             if token not in self._stops:
                 if self._isStem:
-                    yield PorterStemmer().stem(token)
+                    token = PorterStemmer().stem(token).lower()
+                    yield token
                 else:
+                    token = token.lower()
                     yield token
 
     def getWord(self, word):
+        if word in ['START', 'END']:
+                return word
         if word not in self._stops:
             if self._isStem:
-                return PorterStemmer().stem(word)
-            else:
-                return word
+                word = PorterStemmer().stem(word).lower()
+            return word
         else:
             return None
     
@@ -58,7 +63,9 @@ class Preprocessor_WP(Preprocessor):
             wordpos_pairs.reverse()
         for wordpos in wordpos_pairs:
             word, pos = wordpos
-            yield self.getWord(word.lower()), pos
+            if word not in ['START', 'END']:
+                word = word.lower()
+            yield self.getWord(word), pos
 
     # get a list of pos tags of the words in the line
     def getPOS_line(self, line):

@@ -13,14 +13,15 @@ from AnswerSheet import AnswerSheet
 from TrigramModel import TrigramModel, Preprocessor
 from TrigramModel_WP import TrigramModel_WP
 
+Regex_POS = re.compile(':[\w$]+')
+
 class TrigramPair(): 
     # __modelA is a NON REVERSED model
     # __modelB is a REVERSED model
-    def __init__(self, isWP, isPOS, isStop, isStem, testFileName = None, wA = [1, 1, 1, 1], wB = [1, 1, 1, 1]):
+    def __init__(self, isWP, isPOS, isStop, isStem, testFileName = None, w = [1, 1, 1, 1]):
         self.answersheet = AnswerSheet(isStop = isStop, isStem = isStem, testFileName = testFileName)
         self.__isWP = isWP
-        self.__wA = wA
-        self.__wB = wB
+        self.__w = w
         if self.__isWP:
             self.__modelA = TrigramModel_WP(isPOS = isPOS, isReversed = False, isStop = isStop, isStem = isStem)
             self.__modelB = TrigramModel_WP(isPOS = isPOS, isReversed = True, isStop = isStop, isStem = isStem)
@@ -41,18 +42,14 @@ class TrigramPair():
         
     def answer(self, correctAnswer, question, candidates):
         rate_allCands = []
-        Regex_POS = re.compile(':[\w$]+')
-#        # pure word wanted for correct answer
-#        for P in Regex_POS.findall(correctAnswer):
-#            correctAnswer.replace(P, '')
         self.answersheet.newQuestion(correctAnswer)
         # if not word/pos remove the POS tags 
         question = 'START:START START:START ' + question + ' END:END END:END'
         if self.__isWP is False:
             for P in Regex_POS.findall(question):
-                question.replace(P, '')
+                question = question.replace(P, '')
             for P in Regex_POS.findall(candidates):
-                candidates.replace(P, '')
+                candidates = candidates.replace(P, '')
         words_nearby = []        
         # find the index of XXXXX in the question
         Regex_XXXXX = re.compile('XXXXX[:\w]*')
@@ -68,9 +65,9 @@ class TrigramPair():
         candidateList = candidates.split('|')
         # get the rates of the each candidate
         for cand in candidateList:
-            rate_oneCand = 0
-            rate_oneCand += np.dot(self.__wA, self.__modelA.rate_oneCand(question, cand))
-            rate_oneCand += np.dot(self.__wB, self.__modelB.rate_oneCand(question, cand))
+            rate_oneCand = self.__modelA.rate_oneCand(cand, [words_nearby[0], words_nearby[1]])
+            rate_oneCand += self.__modelB.rate_oneCand(cand, [words_nearby[2], words_nearby[3]])
+            rate_oneCand = np.dot(self.__w, rate_oneCand)
             rate_allCands.append(rate_oneCand)
         maxrate = np.max(rate_allCands)
         if maxrate == 0:
@@ -99,7 +96,14 @@ class TrigramPair_20(TrigramPair):
             self.__modelB = TrigramModel(isReversed = True, isStop = isStop, isStem = isStem)
         
     def update_line(self, line):
-        pass
+        if self.__isWP:
+            self.__modelA.update_line(line)
+            self.__modelB.update_line(line)
+        else:
+            for P in Regex_POS.findall(line):
+                line = line.replace(P, '')
+            self.__modelA.update_line(line)
+            self.__modelB.update_line(line)
     
     def reset(self):
         TrigramPair.reset(self)
@@ -135,7 +139,7 @@ def run_Trigram_WP(isStop, isStem, filename):
                 # make correct answer original
                 Regex_POS = re.compile(':[\w$]+')
                 for P in Regex_POS.findall(correctAnswer):
-                    correctAnswer.replace(P, '')                                
+                    correctAnswer = correctAnswer.replace(P, '')                                
                 myAnswerSheet_mixed.newQuestion(correctAnswer)
                 rate_allCands_mixed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
                 for triPair in TP_list + TP20_list:
@@ -149,7 +153,7 @@ def run_Trigram_WP(isStop, isStem, filename):
                     imax = rate_allCands_mixed.index(maxrate)
                     # candidate list
                     for P in Regex_POS.findall(candidates):
-                        candidates.replace(P, '')
+                        candidates = candidates.replace(P, '')
                     candidateList = candidates.split('|')
                     myAnswer = candidateList[imax]  
                     myAnswerSheet_mixed.submitAnswer(myAnswer)                        
@@ -236,7 +240,7 @@ def answer_Trigramsimple(isStop, isStem, filename):
                     x_20.append(Trigram20.get_p(one = words_nearby[0], 
                                   two = words_nearby[1],
                                   three = cand))
-                    # Bigram: next one word
+                    # bigram: next one word
                     x_corpus.append(Trigram_r.get_p(one = words_nearby[2], two = cand))
                     x_20.append(Trigram20_r.get_p(one = words_nearby[2], two = cand))
                     # Trigram: next two words
@@ -259,37 +263,27 @@ def answer_Trigramsimple(isStop, isStem, filename):
                 if maxrate == 0:
                     myAnswerSheet_mixed.submitAnswer(None)
                 else:
-                    i = 0
-                    for r in CandRates:
-                        if r == maxrate:
-                            myAnswerSheet_mixed.submitAnswer(Candidates[i])
-                            break
-                        i += 1      
+                    imax = CandRates.index(maxrate)
+                    myAnswer = Candidates[imax]            
+                    myAnswerSheet_mixed.submitAnswer(myAnswer)
                         
                 # choose from corpus
                 maxrate_corpus = np.max(CandRates_corpus)
                 if maxrate_corpus == 0:
                     myAnswerSheet_corpus.submitAnswer(None)
                 else:
-                    i = 0
-                    for r in CandRates_corpus:
-                        if r == maxrate_corpus:
-                            myAnswerSheet_corpus.submitAnswer(Candidates[i])
-                            break
-                        i += 1
+                    imax = CandRates_corpus.index(maxrate)
+                    myAnswer = Candidates[imax]            
+                    myAnswerSheet_corpus.submitAnswer(myAnswer)
                         
                 # choose from 20
                 maxrate_20 = np.max(CandRates_20)
-#                print('CandRates_20: \n', CandRates_20)
                 if maxrate_20 == 0:
                     myAnswerSheet_20.submitAnswer(None)
                 else:
-                    i = 0
-                    for r in CandRates_20:
-                        if r == maxrate_20:
-                            myAnswerSheet_20.submitAnswer(Candidates[i])
-                            break
-                        i += 1
+                    imax = CandRates_20.index(maxrate)
+                    myAnswer = Candidates[imax]            
+                    myAnswerSheet_20.submitAnswer(myAnswer)
         else:
             #blank line,  Reset
             Trigram20 = TrigramModel(isStop = isStop, isStem = isStem, isReversed = False)

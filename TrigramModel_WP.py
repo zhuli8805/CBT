@@ -52,22 +52,20 @@ class WordDict_WP(WordDict):
         self.__nextAlterpDict = {}
         subAlterTimes = 0
         for word in self:
-            if word not in ['START', 'END']:
-                for alter, times in self[word].get_myAlterTimes():
-#                    print(alter, times)
-#                    print('subAlterTimes',subAlterTimes)
-                    subAlterTimes += times
-                    if alter not in self.__nextAlterpDict.keys():
-                        self.__nextAlterpDict[alter] = times
-                    else:
-                        self.__nextAlterpDict[alter] += times
+#            if word not in ['START', 'END']:
+            for alter, times in self[word].get_myAlterTimes():
+                subAlterTimes += times
+                if alter not in self.__nextAlterpDict.keys():
+                    self.__nextAlterpDict[alter] = times
+                else:
+                    self.__nextAlterpDict[alter] += times
         for alter in self.__nextAlterpDict.keys():
-            if alter not in ['START', 'END']:
-                self.__nextAlterpDict[alter] = self.__nextAlterpDict[alter] / subAlterTimes
+#            if alter not in ['START', 'END']:
+            self.__nextAlterpDict[alter] = self.__nextAlterpDict[alter] / subAlterTimes
     
     # load word/POS mixed model  
     def load(self, times, part):
-        self.__times = times
+        self._times = times
         if self._levelNum is 1:
             # eat:1<NN:1|VB:1>[apple:1<NN:1|VB:1>|orange:1<NN:1|VB:1>]
             regex_twothreeid_pair = re.compile('[\w\-$:\d]*<[\w\-$:\d|]*>\[[<>\w\-$:\d|]*\]') 
@@ -96,7 +94,7 @@ class WordDict_WP(WordDict):
                 three, threeCounts = three_counts.split(':') # apple:1
                 if three not in self:
                     self[three] = Three_WP()
-                self[three].set_times(int(times))
+                self[three].set_times(int(threeCounts))
                 # NN:1|VB:1
                 for altercounts in alters.split('|'):
                     alter, counts = altercounts.split(':')
@@ -128,7 +126,7 @@ class TrigramModel_WP(TrigramModel):
     def __init__(self, isPOS, isReversed = False, isStop = False, isStem = False, isSimplePOS = False, default = None):
         self.__isSimplePOS = isSimplePOS
         TrigramModel.__init__(self, isReversed = isReversed, isStop = isStop, isStem = isStem, default = default)
-        self.__pre = Preprocessor_WP(isSimplePOS = self.__isSimplePOS, isReversed = self.isReversed, isStop = self.isStop, isStem = self.isStem)
+        self.__pre = Preprocessor_WP(isSimplePOS = self.__isSimplePOS, isReversed = self._isReversed, isStop = self._isStop, isStem = self._isStem)
         # recognize self as a dict of POS or a dict of word
         # updates, filename will be done in different ways
         self.__isPOS = isPOS
@@ -146,33 +144,32 @@ class TrigramModel_WP(TrigramModel):
             return 0
         if one not in self:
             return 0        
-        if three: # three should be POS
+        if three: 
+            # three should be POS
             if two not in self[one]:
                 return 0
             return self[one][two].get_alterp(three) # trigram
-        else: # two should be POS
+        else: 
+            # two should be POS
             return self[one].get_alterp(two) # bigram
 
     def update_line(self, line):
-#        print('update_line=============================')
         regrex_word = re.compile('[\w\-]+:[\w$]+')
         one = None
         two = None
         wordList = regrex_word.findall(line)
+        if self._isReversed:
+            wordList.reverse()
         wordList = ['START:START', 'START:START'] + wordList + ['END:END', 'END:END']
-#        print('wordList===', wordList)
         for pair in wordList:
-#            print('pair===', pair)
             main, alter = pair.split(':')
+            main = self.__pre.getWord(main)
+            if main is None:
+                continue
+            if main not in ['START', 'END']:
+                main = main.lower()
             if self.__isPOS:
-                main, alter = alter, main.lower()
-            else:
-                main = main.lower() 
-                
-#            if 'we' in self:
-#                if 'are' in self['we']:
-#                    print('-=-=-=-=', self[two][main].get_times())
-                    
+                main, alter = alter, main
             if two:
                 if two not in self.keys():
                     self[two] = WordDict_WP(1, isPOS = self.__isPOS)
@@ -201,8 +198,7 @@ class TrigramModel_WP(TrigramModel):
         nextLineNo = initLineNo
         iLine = 0
         starttime = time.time()
-        for line in data:    
-#            print(line)
+        for line in data:
             iLine += 1
             # show progress
             if iLine >= nextLineNo:
@@ -222,8 +218,6 @@ class TrigramModel_WP(TrigramModel):
                     CorrectAnswer = mLineNum.group(2).split('\t')[1]
                     # make questions in the training data to be normal sentense
                     line = Question.replace(regrex_blank.search(Question).group(0), CorrectAnswer)
-#                    print ('question =====', Question)
-#                    print ('line ======', line)
                 else:
                     line = mLineNum.group(2)
                 self.update_line(line)
@@ -239,7 +233,6 @@ class TrigramModel_WP(TrigramModel):
         else:
             # write trigram
             for one in self.keys():
-#                print('one==', one)
                 # print first word
                 print(one, end = '', file = indexfile)
                 # print second word
@@ -299,17 +292,19 @@ class TrigramModel_WP(TrigramModel):
                 self[one].load(0, twothree)
         indexfile.close()
         self.compute()
-        print('<loaded>')
+        print('<loaded>', filename)
 
 def Run_BuildData_WP(isPOS, isStop, isStem, isReversed):
     trainingFiles = [
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_test.txt',
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_train.txt',
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_valid.txt',
-                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_CN_train.txt',
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_NE_train.txt',
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_P_train.txt',
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_V_train.txt'
+#                     'CBTest Datasets\CBTest\data\cbt_test.txt',
+#                     'CBTest Datasets\CBTest\data\cbt_train.txt',
+#                     'CBTest Datasets\CBTest\data\cbt_valid.txt',
+#                     'CBTest Datasets\CBTest\data\cbtest_CN_train.txt',
+#                     'CBTest Datasets\CBTest\data\cbtest_NE_train.txt',
+#                     'CBTest Datasets\CBTest\data\cbtest_P_train.txt',
+#                     'CBTest Datasets\CBTest\data\cbtest_V_train.txt'
+                     'CBTest Datasets\CBTest\data\cbtest_CN_test_2500ex.txt',
+                     
                     ]
     myTrigram = TrigramModel_WP(isPOS = isPOS, isStop = isStop, isStem = isStem, isReversed = isReversed)
     for file in trainingFiles:
@@ -325,9 +320,9 @@ def Run_testWR_WP():
     myTrigram.update_file('test_new.txt')
     myTrigram.compute()
     myTrigram.store()
-#    myTrigram2 = TrigramModel_WP(isPOS = False, isStop = False, isStem = False, isReversed = False)
-#    myTrigram2.load()
-#    myTrigram2.store()
+    myTrigram2 = TrigramModel_WP(isPOS = False, isStop = False, isStem = False, isReversed = False)
+    myTrigram2.load()
+    myTrigram2.store()
     
 #Run_testWR_WP()
 
@@ -346,7 +341,7 @@ def Run_testWR_WP():
 #    print(pos, times)
 #print(myTrigram['this']['is'].get_alterp('DT'))
     
-#filename = '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_P_train.txt'    
+#filename = 'CBTest Datasets\CBTest\data\cbtest_P_train.txt'    
 #import linecache
 #stre = linecache.getlines(filename)
 #count = linecache.getline(filename,123)

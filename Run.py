@@ -41,7 +41,6 @@ def BuildDataThread(isReversed, Nothing):
 def BuildDataTwoThreads():
     _thread.start_new_thread(BuildDataThread, (True, True))
     _thread.start_new_thread(BuildDataThread, (False, False))
-  
 
 def BuildDataMultiThreads():
     for isstop in [True, False]:
@@ -68,7 +67,8 @@ def RunTestMultiThreads():
         answer_Trigramsimple(True, True, filename)
         answer_Trigramsimple(True, False, filename)
         answer_Trigramsimple(False, True, filename)
-        answer_Trigramsimple(False, False, filename)        
+        answer_Trigramsimple(False, False, filename)
+        
     for filename in testFiles:
         _thread.start_new_thread(run4conditions, (filename, 1))
       
@@ -78,9 +78,10 @@ def BuildData_WP():
             for isStem in [True, False]:
                 Run_BuildData_WP(isPOS = isPOS, isStop = isStop, isStem = isStem, isReversed = False)
                 Run_BuildData_WP(isPOS = isPOS, isStop = isStop, isStem = isStem, isReversed = True)
-                
-#Run_BuildData(isPOS = False, isStop = True, isStem = True, isReversed = False)        
-
+           
+           
+           
+           
 #BuildDataSingleThreads()
 
 #BuildDataTwoThreads()
@@ -92,3 +93,4 @@ BuildData_WP()
 #RunTestSingleThread()
 
 #RunTestMultiThreads()
+

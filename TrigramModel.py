@@ -11,23 +11,23 @@ from Preprocessor import Preprocessor
 
 class Three():
     def __init__(self):
-        self.__times = 0 # time of appearance given previous two words
+        self._times = 0 # time of appearance given previous two words
         self.__p = 0 
     
     def compute(self, levelsize):
-        self.__p = self.__times/levelsize
+        self.__p = self._times/levelsize
     
     def set_times(self, times):
-        self.__times = times
+        self._times = times
         
     def get_times(self):
-        return self.__times
+        return self._times
         
     def get_p(self):
         return self.__p
         
     def add(self):
-        self.__times += 1
+        self._times += 1
 
 class WordDict(dict):
     def __init__(self, levelNum, default = None):
@@ -36,31 +36,30 @@ class WordDict(dict):
         # time of appearance given previous one word, 
         # does not equal to len(self) as the word is not necessarily have a following word
         # ie. bigram != trigram
-        self.__times = 0 # should be zero for the first word
+        self._times = 0 # should be zero for the first word
         self.__p = 0 # should be zero for the first word
         # 1: this word is first word, first word has sublevel of WordDict()
         # 2: this word is second word, second word has sublevel of Three()
-        self.__levelNum = levelNum
+        self._levelNum = levelNum
         
     def compute(self, levelTimes):
         if levelTimes:
-            self.__p = self.__times / levelTimes
+            self.__p = self._times / levelTimes
         subLevelTimes = 0
         for word in self:
-            if word not in ['START', 'END']: 
-                subLevelTimes += self[word].get_times()
+#            if word not in ['START', 'END']: 
+            subLevelTimes += self[word].get_times()
         for word in self:
-            if word not in ['START', 'END']:
-                self[word].compute(subLevelTimes)
+            self[word].compute(subLevelTimes)
         
     def add(self):
-#        print('WordDict self.__times old==', self.__times)
-        self.__times += 1
-#        print('WordDict self.__times==', self.__times)
+#        print('WordDict self._times old==', self._times)
+        self._times += 1
+#        print('WordDict self._times==', self._times)
     
     def load(self, times, part):
-        self.__times = times
-        if self.__levelNum is 1:
+        self._times = times
+        if self._levelNum is 1:
             regex_twothreeid_pair = re.compile('[\w:\d]*\[[\w:\d|]*\]') # eat:1[apple:1|orange:1]
             regex_two_threeids = re.compile('([\w:\d]*)\[([\w:\d|]*)\]') # eat:1 and [apple:1|orange:1]
             for pair_twothreeid in regex_twothreeid_pair.findall(part):
@@ -69,42 +68,42 @@ class WordDict(dict):
                 if two not in self:
                     self[two] = WordDict(2) 
                 self[two].load(int(twoCounts), threeids)
-        if self.__levelNum is 2:
+        if self._levelNum is 2:
             for three_counts in part.split('|'): # apple:1|orange:1
                 if len(three_counts.split(':')) is 2:
                     three, threeCounts = three_counts.split(':') # apple:1
                     if three not in self:
                         self[three] = Three()
-                    self[three].set_times(int(times))
+                    self[three].set_times(int(threeCounts))
     
     # get bigram value [ NOT recommanded ]
     def get_p(self):
-        if self.__levelNum is not 1:
+        if self._levelNum is not 1:
             return self.__p
         else:
             print('>>> NO P VALUE FOR THE FIRST WORD! <<<')
             return None
             
     def get_times(self):
-        return self.__times
+        return self._times
 
 class TrigramModel(dict):
     def __init__(self, isReversed = False, isStop = False, isStem = False, default = None):
         dict.__init__(self)
         self.default = default
-        self.isReversed = isReversed
-        self.isStop = isStop
-        self.isStem = isStem
-        self.__pre = Preprocessor(isReversed = self.isReversed, isStop = self.isStop, isStem = self.isStem)
+        self._isReversed = isReversed
+        self._isStop = isStop
+        self._isStem = isStem
+        self.__pre = Preprocessor(isReversed = self._isReversed, isStop = self._isStop, isStem = self._isStem)
     
     # generate filename according to the configurations
     def _getFileName(self, initName):
         filename = initName        
-        if self.isReversed:
+        if self._isReversed:
             filename += '_reverse'    
-        if self.isStop:
+        if self._isStop:
             filename += '_stop'
-        if self.isStem:
+        if self._isStem:
             filename += '_stem'
         filename += '.txt'
         return filename
@@ -129,6 +128,8 @@ class TrigramModel(dict):
         two = None
         line = 'START START ' + line.lower() + ' END END'
         for word in self.__pre.getToken(line):
+            if word is None:
+                continue
             if two:
                 if two not in self:
                     self[two] = WordDict(1)
@@ -165,7 +166,7 @@ class TrigramModel(dict):
                 else:
                     nextLineNo += stepLength
             # question lines in the training data
-            R21 = re.compile('^21 (.+)\t+([\S]+)\t+([\S]+)$')
+            R21 = re.compile('^21 (.+)\t+([\S]+)\t+([\S]+)$')            
             Qline = R21.search(line)
             if Qline:
                 Question = Qline.group(1)
@@ -227,18 +228,21 @@ class TrigramModel(dict):
         self.compute()
         print('<loaded>')
     
-    def answer(self):
-        pass
+    def answer(self, words_nearby, cand):
+        rate_bigram = self.get_p(one = words_nearby[0], two = cand)
+        rate_trigram = self.get_p(one = words_nearby[0], two = words_nearby[1],
+                                     three = cand)
+        return [rate_bigram, rate_trigram]
 
 def Run_BuildData(isStop, isStem, isReversed):
     trainingFiles = [
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_test.txt',
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_train.txt'],
-#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_valid.txt',
-                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_CN_train.txt',
-                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_NE_train.txt',
-                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_P_train.txt',
-                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_V_train.txt'
+#                     'CBTest Datasets\CBTest\data\cbt_test.txt',
+#                     'CBTest Datasets\CBTest\data\cbt_train.txt'],
+#                     'CBTest Datasets\CBTest\data\cbt_valid.txt',
+                     'CBTest Datasets\CBTest\data\cbtest_CN_train.txt',
+                     'CBTest Datasets\CBTest\data\cbtest_NE_train.txt',
+                     'CBTest Datasets\CBTest\data\cbtest_P_train.txt',
+                     'CBTest Datasets\CBTest\data\cbtest_V_train.txt'
                     ]
 
     myTrigram = TrigramModel(isStop = isStop, isStem = isStem, isReversed = isReversed)
@@ -247,6 +251,7 @@ def Run_BuildData(isStop, isStem, isReversed):
     myTrigram.compute()
     myTrigram.store()
     print('<<done!>>')
+    
     
     # Data test
 #    print(test.get_p('our', 'family')) # recommanded way for bigram p
