@@ -20,12 +20,12 @@ corenlp_settings = {'annotators': 'tokenize,ssplit,pos,ner', "outputFormat": "te
 re_nlp_annotate = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
 re_punct = re.compile('^[^a-zA-Z]+$')
 
-pattern = 'cbtest_CN*'
+pattern = 'cbtest_*'
 #pattern = 'test*'
 if len(sys.argv) > 1:
     pattern = sys.argv[1]
-data_path = 'D:\Yixuan Li\Documents\TUoS\Industrial Team Project\CBTest\CBTest\data'
-#data_path = 'D:\Yixuan Li\Documents\TUoS\Industrial Team Project\CBTest\CoreNLP_tag_reader'
+data_path = 'CBTest Datasets\CBTest\data'
+
 file_in_list = glob(join(data_path, pattern))
 file_out_list = []
 for f_in in file_in_list:

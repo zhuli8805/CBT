@@ -4,39 +4,39 @@ Created on Mon Nov 28 16:22:50 2016
 
 @author: ZHULI
 """
-import random
+
 import _thread
-from LanguageModel import run_Trigram
+from LanguageModel import answer_Trigramsimple
 from TrigramModel import Run_BuildData
+from TrigramModel_WP import Run_BuildData_WP
 
 def BuildDataSingleThreads():
-    Run_BuildData(isPOS = False, isStop = False, isStem = False, isReversed = False)
-    Run_BuildData(isPOS = False, isStop = False, isStem = False, isReversed = True)
-#    Run_BuildData(isPOS = False, isStop = True, isStem = True, isReversed = False)
-#    Run_BuildData(isPOS = False, isStop = True, isStem = True, isReversed = True)
-#    Run_BuildData(isPOS = False, isStop = True, isStem = False, isReversed = False)
-#    Run_BuildData(isPOS = False, isStop = True, isStem = False, isReversed = True)
-#    Run_BuildData(isPOS = False, isStop = False, isStem = True, isReversed = False)
-#    Run_BuildData(isPOS = False, isStop = False, isStem = True, isReversed = True)
-#    Run_BuildData(isPOS = True, isStop = True, isStem = True, isReversed = False)
-#    Run_BuildData(isPOS = True, isStop = True, isStem = True, isReversed = True)
-#    Run_BuildData(isPOS = True, isStop = True, isStem = False, isReversed = False)
-#    Run_BuildData(isPOS = True, isStop = True, isStem = False, isReversed = True)
-#    Run_BuildData(isPOS = True, isStop = False, isStem = True, isReversed = False)
-#    Run_BuildData(isPOS = True, isStop = False, isStem = True, isReversed = True)
-#    Run_BuildData(isPOS = True, isStop = False, isStem = False, isReversed = False)
-#    Run_BuildData(isPOS = True, isStop = False, isStem = False, isReversed = True)
+    Run_BuildData(isStop = False, isStem = False, isReversed = False)
+    Run_BuildData(isStop = False, isStem = False, isReversed = True)
+#    Run_BuildData(isStop = True, isStem = True, isReversed = False)
+#    Run_BuildData(isStop = True, isStem = True, isReversed = True)
+#    Run_BuildData(isStop = True, isStem = False, isReversed = False)
+#    Run_BuildData(isStop = True, isStem = False, isReversed = True)
+#    Run_BuildData(isStop = False, isStem = True, isReversed = False)
+#    Run_BuildData(isStop = False, isStem = True, isReversed = True)
+#    Run_BuildData(isStop = True, isStem = True, isReversed = False)
+#    Run_BuildData(isStop = True, isStem = True, isReversed = True)
+#    Run_BuildData(isStop = True, isStem = False, isReversed = False)
+#    Run_BuildData(isStop = True, isStem = False, isReversed = True)
+#    Run_BuildData(isStop = False, isStem = True, isReversed = False)
+#    Run_BuildData(isStop = False, isStem = True, isReversed = True)
+#    Run_BuildData(isStop = False, isStem = False, isReversed = False)
+#    Run_BuildData(isStop = False, isStem = False, isReversed = True)
 
 def BuildDataThread(isReversed, Nothing):
-    Run_BuildData(isPOS = True, isStop = False, isStem = False, isReversed = isReversed)
-    Run_BuildData(isPOS = True, isStop = False, isStem = True, isReversed = isReversed)
-    Run_BuildData(isPOS = True, isStop = True, isStem = False, isReversed = isReversed)
-    Run_BuildData(isPOS = True, isStop = True, isStem = True, isReversed = isReversed)
-    Run_BuildData(isPOS = False, isStop = False, isStem = False, isReversed = isReversed)
-    Run_BuildData(isPOS = False, isStop = True, isStem = True, isReversed = isReversed)
-    Run_BuildData(isPOS = False, isStop = True, isStem = False, isReversed = isReversed)
-    Run_BuildData(isPOS = False, isStop = False, isStem = True, isReversed = isReversed)
-
+    Run_BuildData(isStop = False, isStem = False, isReversed = isReversed)
+    Run_BuildData(isStop = False, isStem = True, isReversed = isReversed)
+    Run_BuildData(isStop = True, isStem = False, isReversed = isReversed)
+    Run_BuildData(isStop = True, isStem = True, isReversed = isReversed)
+    Run_BuildData(isStop = False, isStem = False, isReversed = isReversed)
+    Run_BuildData(isStop = True, isStem = True, isReversed = isReversed)
+    Run_BuildData(isStop = True, isStem = False, isReversed = isReversed)
+    Run_BuildData(isStop = False, isStem = True, isReversed = isReversed)
 
 def BuildDataTwoThreads():
     _thread.start_new_thread(BuildDataThread, (True, True))
@@ -57,31 +57,38 @@ testFiles = [
 
 def RunTestSingleThread():
     for filename in testFiles:
-        run_Trigram(True, True, filename)
-        run_Trigram(True, False, filename)
-        run_Trigram(False, True, filename)
-        run_Trigram(False, False, filename)
+        answer_Trigramsimple(True, True, filename)
+        answer_Trigramsimple(True, False, filename)
+        answer_Trigramsimple(False, True, filename)
+        answer_Trigramsimple(False, False, filename)
         print('======================')
     
 def RunTestMultiThreads():
     def run4conditions(filename, nothing):
-        run_Trigram(True, True, filename)
-        run_Trigram(True, False, filename)
-        run_Trigram(False, True, filename)
-        run_Trigram(False, False, filename)
-        
+        answer_Trigramsimple(True, True, filename)
+        answer_Trigramsimple(True, False, filename)
+        answer_Trigramsimple(False, True, filename)
+        answer_Trigramsimple(False, False, filename)        
     for filename in testFiles:
         _thread.start_new_thread(run4conditions, (filename, 1))
-        
-        
+      
+def BuildData_WP():
+    for isPOS in [True, False]:
+        for isStop in [True, False]:
+            for isStem in [True, False]:
+                Run_BuildData_WP(isPOS = isPOS, isStop = isStop, isStem = isStem, isReversed = False)
+                Run_BuildData_WP(isPOS = isPOS, isStop = isStop, isStem = isStem, isReversed = True)
+                
 #Run_BuildData(isPOS = False, isStop = True, isStem = True, isReversed = False)        
-        
+
 #BuildDataSingleThreads()
 
 #BuildDataTwoThreads()
 
 #BuildDataMultiThreads()
 
-RunTestSingleThread()
+BuildData_WP()
+
+#RunTestSingleThread()
 
 #RunTestMultiThreads()

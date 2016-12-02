@@ -5,7 +5,7 @@ Created on Tue Nov 22 14:39:42 2016
 @author: ZHULI
 """
 
-import re, time, sys
+import re, time
 from read_data import ReadData
 from TrigramModel import Three, WordDict, TrigramModel
 from Preprocessor import Preprocessor_WP
@@ -54,8 +54,8 @@ class WordDict_WP(WordDict):
         for word in self:
             if word not in ['START', 'END']:
                 for alter, times in self[word].get_myAlterTimes():
-                    print(alter, times)
-                    print('subAlterTimes',subAlterTimes)
+#                    print(alter, times)
+#                    print('subAlterTimes',subAlterTimes)
                     subAlterTimes += times
                     if alter not in self.__nextAlterpDict.keys():
                         self.__nextAlterpDict[alter] = times
@@ -68,34 +68,34 @@ class WordDict_WP(WordDict):
     # load word/POS mixed model  
     def load(self, times, part):
         self.__times = times
-        if self.__levelNum is 1:
+        if self._levelNum is 1:
             # eat:1<NN:1|VB:1>[apple:1<NN:1|VB:1>|orange:1<NN:1|VB:1>]
-            regex_twothreeid_pair = re.compile('[\w:\d]*<[\w:\d|]*>\[[<>\w:\d|]*\]') 
+            regex_twothreeid_pair = re.compile('[\w\-$:\d]*<[\w\-$:\d|]*>\[[<>\w\-$:\d|]*\]') 
             # eat:1<NN:1|VB:1> and [apple:1<NN:1|VB:1>|orange:1<NN:1|VB:1>]
-            regex_twoalter_threeids = re.compile('([\w:\d]*<[\w:\d|]*>)\[([<>\w:\d|]*)\]')
+            regex_twoalter_threeids = re.compile('([\w\-$:\d]*<[\w\-$:\d|]*>)\[([<>\w\-$:\d|]*)\]')
             # eat:1 and NN:1|VB:1
-            regex_two_alter = re.compile('([\w:\d]*)<([\w:\d|]*)>')
+            regex_two_alter = re.compile('([\w\-$:\d]*)<([\w\-$:\d|]*)>')
             for pair_twothreeid in regex_twothreeid_pair.findall(part):                
                 two_alter, threeids = regex_twoalter_threeids.search(pair_twothreeid).groups() 
                 two_counts, alters = regex_two_alter.search(two_alter).groups()
                 two, twoCounts = two_counts.split(':')
                 if two not in self:
-                    self[two] = WordDict(2, isStanford = True, isPOS = self.__isPOS)
+                    self[two] = WordDict_WP(2, isPOS = self.__isPOS)
                 self[two].load(int(twoCounts), threeids)
                 for alter_counts in alters.split('|'):
                     alter, counts = alter_counts.split(':')
                     self[two].set_myAlterTimes(alter, counts)
-        if self.__levelNum is 2:
+        if self._levelNum is 2:
             # part is: [apple:1<NN:1|VB:1>|orange:1<NN:1|VB:1>]
-            regex_threealter_pair = re.compile('[\w:\d]*<[\w:\d|]*>')
-            regex_threecounts_alters = re.compile('([\w:\d]*)<([\w:\d|]*)>')
+            regex_threealter_pair = re.compile('[\w\-$:\d]*<[\w\-$:\d|]*>')
+            regex_threecounts_alters = re.compile('([\w\-$:\d]*)<([\w\-$:\d|]*)>')
             # apple:1<NN:1|VB:1>
             for threealters in regex_threealter_pair.findall(part): 
                 # apple:1 and NN:1|VB:1
                 three_counts, alters = regex_threecounts_alters.search(threealters).groups() 
                 three, threeCounts = three_counts.split(':') # apple:1
                 if three not in self:
-                    self[three] = Three()
+                    self[three] = Three_WP()
                 self[three].set_times(int(times))
                 # NN:1|VB:1
                 for altercounts in alters.split('|'):
@@ -125,9 +125,10 @@ class WordDict_WP(WordDict):
         self.__myAlterTimesDict[alter] = int(times)
         
 class TrigramModel_WP(TrigramModel):
-    def __init__(self, isPOS, isReversed = False, isStop = False, isStem = False, default = None):
+    def __init__(self, isPOS, isReversed = False, isStop = False, isStem = False, isSimplePOS = False, default = None):
+        self.__isSimplePOS = isSimplePOS
         TrigramModel.__init__(self, isReversed = isReversed, isStop = isStop, isStem = isStem, default = default)
-        self.__pre = Preprocessor_WP(isReversed = self.isReversed, isStop = self.isStop, isStem = self.isStem)
+        self.__pre = Preprocessor_WP(isSimplePOS = self.__isSimplePOS, isReversed = self.isReversed, isStop = self.isStop, isStem = self.isStem)
         # recognize self as a dict of POS or a dict of word
         # updates, filename will be done in different ways
         self.__isPOS = isPOS
@@ -151,67 +152,82 @@ class TrigramModel_WP(TrigramModel):
             return self[one][two].get_alterp(three) # trigram
         else: # two should be POS
             return self[one].get_alterp(two) # bigram
-    
-    # update the data of line if this is a word dict
-    def update_line_word(self, line):
-        one = None
-        two = None
-        pair_START = [['START', 'START']]
-        pair_END = [['END', 'END']]
-        pairs = []
-        for pair in self.__pre.getToken_wordpos(line):
-            pairs = pairs + [pair]
-        pairs = pair_START + pair_START + pairs + pair_END + pair_END
-#        print ('update_line_word pairs = ', pairs)
-        for pair in pairs:
-#            print('pair = ', pair)
-            word, pos = pair
-            if two:
-                if two not in self:
-                    self[two] = WordDict(1, isPOS = self.__isPOS)
-                self[two][word] = WordDict(2, isPOS = self.__isPOS)
-                self[two][word].add()
-                self[two][word].add_myAlter(pos)
-            if one:
-                if word not in self[one][two]:
-                    self[one][two][word] = Three()
-                self[one][two][word].add()
-                self[one][two][word].add_myAlter(pos)
-            one = two
-            two = word
-            
-    # update the data of line if this is a POS dict
-    def update_line_POS(self, line):
-        one = None
-        two = None
-        pair_START = [['START', 'START']]
-        pair_END = [['END', 'END']]
-        pairs = []
-        for pair in self.__pre.getToken_wordpos(line):
-            pairs = pairs + [pair]
-        pairs = pair_START + pair_START + pairs + pair_END + pair_END
-        for pair in pairs:
-            word, pos = pair
-            if two:
-                if two not in self:
-                    self[two] = WordDict(1, isPOS = self.__isPOS)
-                self[two][pos] = WordDict(2, isPOS = self.__isPOS)
-                self[two][pos].add()
-                self[two][pos].add_myAlter(word)
-            if one:
-                if word not in self[one][two]:
-                    self[one][two][pos] = Three()
-                self[one][two][pos].add()
-                self[one][two][pos].add_myAlter(word)
-            one = two
-            two = pos
-        
+
     def update_line(self, line):
-        if self.__isPOS:
-            self.update_line_POS(line)
-        else:
-            self.update_line_word(line)
-            
+#        print('update_line=============================')
+        regrex_word = re.compile('[\w\-]+:[\w$]+')
+        one = None
+        two = None
+        wordList = regrex_word.findall(line)
+        wordList = ['START:START', 'START:START'] + wordList + ['END:END', 'END:END']
+#        print('wordList===', wordList)
+        for pair in wordList:
+#            print('pair===', pair)
+            main, alter = pair.split(':')
+            if self.__isPOS:
+                main, alter = alter, main.lower()
+            else:
+                main = main.lower() 
+                
+#            if 'we' in self:
+#                if 'are' in self['we']:
+#                    print('-=-=-=-=', self[two][main].get_times())
+                    
+            if two:
+                if two not in self.keys():
+                    self[two] = WordDict_WP(1, isPOS = self.__isPOS)
+                if main not in self[two].keys():
+                    self[two][main] = WordDict_WP(2, isPOS = self.__isPOS)
+                self[two][main].add()
+                self[two][main].add_myAlter(alter)
+            if one:
+                if main not in self[one][two].keys():
+                    self[one][two][main] = Three_WP()
+                self[one][two][main].add()
+                self[one][two][main].add_myAlter(alter)
+            one = two
+            two = main
+
+    def update_file(self, filename):
+        filename = filename.replace('.txt', '_WP.txt')
+        regrex_lineNum = re.compile('(\d+)\t(.*)')
+        regrex_blank = re.compile('XXXXX:[\w$]+')
+        print('<updating from file....>:\n%s' % filename)
+        data = ReadData(filename, True, None)
+        TotalLines = data.countLines()
+        print('[Total Lines] = ', TotalLines)
+        initLineNo = TotalLines/1000
+        stepLength = TotalLines/10
+        nextLineNo = initLineNo
+        iLine = 0
+        starttime = time.time()
+        for line in data:    
+#            print(line)
+            iLine += 1
+            # show progress
+            if iLine >= nextLineNo:
+                timesofar = (time.time() - starttime) / 60
+                totaltime = (timesofar * TotalLines / iLine)
+                timeleft = (timesofar * (TotalLines-iLine) / iLine)
+                print('[Progress]: %3.2f%% (%d/%d)  %.2f/%.2fmins %.2fmins left' % (iLine/TotalLines*100, iLine, TotalLines, timesofar, totaltime, timeleft))                
+                if nextLineNo is initLineNo:
+                    nextLineNo = stepLength
+                else:
+                    nextLineNo += stepLength
+            mLineNum = regrex_lineNum.search(line)
+            if mLineNum:
+                # question lines in the training data
+                if int(mLineNum.group(1)) == 21:
+                    Question = mLineNum.group(2).split('\t')[0]
+                    CorrectAnswer = mLineNum.group(2).split('\t')[1]
+                    # make questions in the training data to be normal sentense
+                    line = Question.replace(regrex_blank.search(Question).group(0), CorrectAnswer)
+#                    print ('question =====', Question)
+#                    print ('line ======', line)
+                else:
+                    line = mLineNum.group(2)
+                self.update_line(line)
+
     def store(self, initFileName = '.\\Trigram Data\\Trigram'):
         filename = self._getFileName(initFileName)
         print('<storing WP...> : \n%s' % filename)
@@ -223,6 +239,7 @@ class TrigramModel_WP(TrigramModel):
         else:
             # write trigram
             for one in self.keys():
+#                print('one==', one)
                 # print first word
                 print(one, end = '', file = indexfile)
                 # print second word
@@ -263,7 +280,7 @@ class TrigramModel_WP(TrigramModel):
                     print(']', end = '', file = indexfile)
                 print('}', file = indexfile)
         indexfile.close()
-        print('<< stored >>')
+        print('<< stored WP >>')
     
     def load(self, initFileName = '.\\Trigram Data\\Trigram'):
         filename = self._getFileName(initFileName)
@@ -274,12 +291,11 @@ class TrigramModel_WP(TrigramModel):
             print('FAILURE: INDEX file loading failed!')
             return False
         else:
-            regex_one_twothree = re.compile('^([\w]+){(.+)}') # word{....}
+            regex_one_twothree = re.compile('^([\w\-$]+){(.+)}') # word{....}
             for line in indexfile:
-#                print('line = ', line)
                 one, twothree = regex_one_twothree.search(line).groups() # word and {....}
                 if one not in self:
-                    self[one] = WordDict(1, isPOS = self.__isPOS)
+                    self[one] = WordDict_WP(1, isPOS = self.__isPOS)
                 self[one].load(0, twothree)
         indexfile.close()
         self.compute()
@@ -291,11 +307,11 @@ def Run_BuildData_WP(isPOS, isStop, isStem, isReversed):
 #                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_train.txt',
 #                     '..\..\..\..\CBTest Datasets\CBTest\data\cbt_valid.txt',
                      '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_CN_train.txt',
-                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_NE_train.txt',
-                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_P_train.txt',
-                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_V_train.txt'
-                    ]        
-    myTrigram = TrigramModel(isPOS = isPOS, isStop = isStop, isStem = isStem, isReversed = isReversed)
+#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_NE_train.txt',
+#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_P_train.txt',
+#                     '..\..\..\..\CBTest Datasets\CBTest\data\cbtest_V_train.txt'
+                    ]
+    myTrigram = TrigramModel_WP(isPOS = isPOS, isStop = isStop, isStem = isStem, isReversed = isReversed)
     for file in trainingFiles:
         print('Building Data', isPOS, isStop, isStem, isReversed)
         myTrigram.update_file(file)
@@ -305,13 +321,23 @@ def Run_BuildData_WP(isPOS, isStop, isStem, isReversed):
 
 ##### write and read test for [WP] Trigram
 def Run_testWR_WP():
-    myTrigram = TrigramModel(isPOS = False, isStop = False, isStem = False, isReversed = False)
-    myTrigram.update_file('test.txt')
+    myTrigram = TrigramModel_WP(isPOS = False, isStop = False, isStem = False, isReversed = False)
+    myTrigram.update_file('test_new.txt')
     myTrigram.compute()
     myTrigram.store()
-    myTrigram2 = TrigramModel(isPOS = False, isStop = False, isStem = False, isReversed = False)
-    myTrigram2.load()
-    myTrigram2.store()
+#    myTrigram2 = TrigramModel_WP(isPOS = False, isStop = False, isStem = False, isReversed = False)
+#    myTrigram2.load()
+#    myTrigram2.store()
+    
+#Run_testWR_WP()
+
+#test = TrigramModel_WP(isPOS = False, isStop = False, isStem = False, isReversed = False)
+
+#test['this'] = WordDict_WP(1, isPOS = False)
+#test['this']['is'] = WordDict(2)
+#test['this']['is'].add()
+#test['this']['is'].add()
+#print(test['this']['is'].get_times())
 
 #print('======')
 #print(myTrigram.get_alterp('this','VBZ'))
@@ -331,10 +357,3 @@ def Run_testWR_WP():
 #    print(test.get_p('our', 'family')) # recommanded way for bigram p
 #    print(test.get_p('my', 'dear')) # recommanded way for trigram p 
 #    print(test['our']['family'].get_times())
-
-### loading result test
-#test2 = TrigramModel(isStop = False, isStem = False, isReversed = False)
-#test2.load()
-#print(test2.get_p('our', 'family')) # recommanded way for bigram p
-#print(test2.get_p('my', 'dear')) # recommanded way for trigram p 
-#print(test2['our']['family'].get_times())

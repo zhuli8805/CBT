@@ -71,10 +71,3 @@ class ReadData():
             
                 continue
         TrainingData.close()
-        
-## test code
-#filename = '..\..\..\..\CBTest Datasets\CBTest\data\cbt_train.txt'
-#rd = ReadData(filename, True, None)
-#for line in rd:
-##    print(line)
-#    pass

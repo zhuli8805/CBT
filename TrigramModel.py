@@ -54,7 +54,9 @@ class WordDict(dict):
                 self[word].compute(subLevelTimes)
         
     def add(self):
+#        print('WordDict self.__times old==', self.__times)
         self.__times += 1
+#        print('WordDict self.__times==', self.__times)
     
     def load(self, times, part):
         self.__times = times
@@ -76,7 +78,7 @@ class WordDict(dict):
                     self[three].set_times(int(times))
     
     # get bigram value [ NOT recommanded ]
-    def get_p(self,):
+    def get_p(self):
         if self.__levelNum is not 1:
             return self.__p
         else:
@@ -130,7 +132,8 @@ class TrigramModel(dict):
             if two:
                 if two not in self:
                     self[two] = WordDict(1)
-                self[two][word] = WordDict(2)
+                if word not in self[two]:
+                    self[two][word] = WordDict(2)
                 self[two][word].add()
             if one:
                 if word not in self[one][two]:
@@ -144,19 +147,23 @@ class TrigramModel(dict):
         data = ReadData(filename, True, None)
         TotalLines = data.countLines()
         print('[Total Lines] = ', TotalLines)
-        stepLength = TotalLines/100
-        nextLineNo = TotalLines/1000
+        initLineNo = TotalLines/1000
+        stepLength = TotalLines/10
+        nextLineNo = initLineNo
         iLine = 0
         starttime = time.time()
         for line in data:    
             iLine += 1
             # show progress
             if iLine >= nextLineNo:
-                timesofar = (time.time() - starttime)
-                timeleft = (timesofar * (TotalLines-iLine) / iLine)/60    
-                timesofar = timesofar / 60
-                print('[Progress]: %3.2f%% (%d/%d)  %.2fmins  %.2fmins' % (iLine/TotalLines*100, iLine, TotalLines, timesofar, timeleft))                
-                nextLineNo += stepLength              
+                timesofar = (time.time() - starttime) / 60
+                totaltime = (timesofar * TotalLines / iLine)
+                timeleft = (timesofar * (TotalLines-iLine) / iLine)
+                print('[Progress]: %3.2f%% (%d/%d)  %.2f/%.2fmins %.2fmins left' % (iLine/TotalLines*100, iLine, TotalLines, timesofar, totaltime, timeleft))                
+                if nextLineNo is initLineNo:
+                    nextLineNo = stepLength
+                else:
+                    nextLineNo += stepLength
             # question lines in the training data
             R21 = re.compile('^21 (.+)\t+([\S]+)\t+([\S]+)$')
             Qline = R21.search(line)
@@ -198,7 +205,6 @@ class TrigramModel(dict):
         print('<< stored >>')
 
     def compute(self):
-#        print('<computing...>')
         for one in self:
             self[one].compute(None)
     
@@ -213,7 +219,6 @@ class TrigramModel(dict):
         else:
             regex_one_twothree = re.compile('^([\w]+){(.+)}') # word{....}
             for line in indexfile:
-#                print('line = ', line)
                 one, twothree = regex_one_twothree.search(line).groups() # word{....}
                 if one not in self:
                     self[one] = WordDict(1)
@@ -222,7 +227,8 @@ class TrigramModel(dict):
         self.compute()
         print('<loaded>')
     
-    def answer
+    def answer(self):
+        pass
 
 def Run_BuildData(isStop, isStem, isReversed):
     trainingFiles = [

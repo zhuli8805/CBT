@@ -9,7 +9,7 @@ import os, time, re
 
 class AnswerSheet():
     def __init__(self, isStop, isStem, testFileName = None):
-        self.__testName = testFileName
+        self.set_filename(testFileName)
         self.__correctAnswer = None
         self.__totalQuestionNum = 0
         self.__correctAnswerNum = 0
@@ -48,6 +48,9 @@ class AnswerSheet():
             print('No question was attempted')
        
     def set_filename(self, filename):
+        filename = filename.split('\\').pop().replace('.txt', '')
+        if filename is None:
+            self.__testName = None
         Regex_testname = re.compile('\\\([\w_0-9]*?).txt')
         res = Regex_testname.findall(filename)
         if res:
@@ -69,17 +72,17 @@ class AnswerSheet():
             overall = self.__correctAnswerNum/self.__totalQuestionNum * 100
         if self.__answersMade > 0:
             attempted = self.__correctAnswerNum/self.__answersMade * 100
-        
         print('%24s\t%5s\t%5s\t%3.5f%%\t(%d/%d)\t\t%3.5f%%\t(%d/%d)\t' 
         % (mytime, self.__isStop, self.__isStem, overall, self.__correctAnswerNum, self.__totalQuestionNum ,attempted, self.__correctAnswerNum, self.__answersMade)
-        + self.__testName +'  '+ comments , file = file)
+        + self.__testName + '  ' + comments , file = file)
         file.close()
         
     def reset(self, testFileName = None):
+        self.set_filename(testFileName)
         self.__correctAnswer = None
         self.__totalQuestionNum = 0
         self.__correctAnswerNum = 0
-        self.__testName = testFileName
+        self.__answersMade = 0
         
     def get_score(self):
         overallScore = None

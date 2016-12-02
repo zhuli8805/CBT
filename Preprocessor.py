@@ -47,16 +47,12 @@ class Preprocessor():
                 return word
         else:
             return None
-            
+    
 class Preprocessor_WP(Preprocessor):
-    def __init__(self, isStanford = False, isReversed = False, isStop = False, isStem = False):
+    def __init__(self, isSimplePOS, isReversed = False, isStop = False, isStem = False):
         Preprocessor.__init__(self, isReversed = isReversed, isStop = isStop, isStem = isStem)
-        self.__isStanford = isStanford
-           
+    
     def getToken_wordpos(self, line):
-        if self.__isStanford is False:
-            print ('ERROR: Calling getToken_wordpos in non Stanford Preprocessor')
-            sys.exit()
         wordpos_pairs = get_all_nlp_tag(line, True)
         if self.isReversed:
             wordpos_pairs.reverse()
@@ -66,7 +62,7 @@ class Preprocessor_WP(Preprocessor):
 
     # get a list of pos tags of the words in the line
     def getPOS_line(self, line):
-        if self.__isStanford is False:
-            print ('ERROR: Calling getPOS_line in non Stanford Preprocessor')
-            sys.exit()
-        return get_all_nlp_tag(line) 
+        return get_all_nlp_tag(line)
+        
+    def getSimplePOS(self, POS):
+        pass
