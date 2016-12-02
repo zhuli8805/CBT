@@ -9,7 +9,7 @@ Created on Wed Nov 30 23:46:54 2016
 java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer
 """
 
-import re, sys
+import re, sys, time
 from pycorenlp import StanfordCoreNLP
 from os.path import basename, join, splitext
 from glob import glob
@@ -28,12 +28,21 @@ data_path = 'CBTest Datasets\CBTest\data'
 
 file_in_list = glob(join(data_path, pattern))
 file_out_list = []
+
 for f_in in file_in_list:
     base = basename(f_in)
     f_out = join(data_path, splitext(base)[0]+'_WP'+splitext(base)[1])
     file_out_list.append(f_out)
     
 
+def countLines(filename):
+    i = 0 
+    file = open(filename,'r')
+    for line in file:
+        i += 1
+    file.close()
+    return i
+    
 def display_files():
     for f_in, f_out in zip(file_in_list, file_out_list):
         print(basename(f_in))
@@ -42,15 +51,32 @@ def display_files():
 
 def glob_CBT_files():
     for f_in, f_out in zip(file_in_list, file_out_list):
+        totalLines = countLines(f_in)
         with open(f_in, 'r') as file_in:
             with open(f_out, 'w') as file_out:
-                print('Start processing ' + basename(f_in))
-                read_and_write(file_in, file_out)
+                print('[Start processing] ' + basename(f_in))
+                read_and_write(file_in, file_out, totalLines)
     file_in.close()
     file_out.close()
 
-def read_and_write(file_in, file_out):
+def read_and_write(file_in, file_out, totalLines):
+    initLineNo = totalLines/1000
+    stepLength = totalLines/10
+    nextLineNo = initLineNo
+    iLine = 0
+    starttime = time.time()
     for line in file_in:
+        # show progress
+        iLine += 1
+        if iLine >= nextLineNo:
+            timesofar = (time.time() - starttime) / 60
+            totaltime = (timesofar * totalLines / iLine)
+            timeleft = (timesofar * (totalLines-iLine) / iLine)
+            print('[Progress]: %3.2f%% (%d/%d)  %.2f/%.2fmins %.2fmins left' % (iLine/totalLines*100, iLine, totalLines, timesofar, totaltime, timeleft))                
+            if nextLineNo is initLineNo:
+                nextLineNo = stepLength
+            else:
+                nextLineNo += stepLength
         if line.split():
             output_list = get_nlp_tag(line)
             file_out.write('\t'.join(output_list))
