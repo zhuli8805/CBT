@@ -20,7 +20,7 @@ corenlp_settings = {'annotators': 'tokenize,ssplit,pos,ner', "outputFormat": "te
 re_nlp_annotate = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
 re_punct = re.compile('^[^a-zA-Z]+$')
 
-pattern = 'cbtest_*'
+pattern = 'cbtest_V*'
 #pattern = 'test*'
 if len(sys.argv) > 1:
     pattern = sys.argv[1]
@@ -46,7 +46,8 @@ def glob_CBT_files():
             with open(f_out, 'w') as file_out:
                 print('Start processing ' + basename(f_in))
                 read_and_write(file_in, file_out)
-
+    file_in.close()
+    file_out.close()
 
 def read_and_write(file_in, file_out):
     for line in file_in:
