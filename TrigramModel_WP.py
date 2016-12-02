@@ -299,11 +299,11 @@ def Run_BuildData_WP(isPOS, isStop, isStem, isReversed):
 #                     'CBTest Datasets\CBTest\data\cbt_test.txt',
 #                     'CBTest Datasets\CBTest\data\cbt_train.txt',
 #                     'CBTest Datasets\CBTest\data\cbt_valid.txt',
-#                     'CBTest Datasets\CBTest\data\cbtest_CN_train.txt',
+                     'CBTest Datasets\CBTest\data\cbtest_CN_train.txt',
 #                     'CBTest Datasets\CBTest\data\cbtest_NE_train.txt',
 #                     'CBTest Datasets\CBTest\data\cbtest_P_train.txt',
 #                     'CBTest Datasets\CBTest\data\cbtest_V_train.txt'
-                     'CBTest Datasets\CBTest\data\cbtest_CN_test_2500ex.txt',
+#                     'CBTest Datasets\CBTest\data\cbtest_CN_test_2500ex.txt',
                      
                     ]
     myTrigram = TrigramModel_WP(isPOS = isPOS, isStop = isStop, isStem = isStem, isReversed = isReversed)
