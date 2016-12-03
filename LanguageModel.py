@@ -189,9 +189,9 @@ def answer_Trigramsimple(isStop, isStem, filename):
     w_20 = [1, 1, 1, 1] # -2, -1, 1, 2
     
     file = open(filename,'r')
-    myAnswerSheet_mixed = AnswerSheet(isStop = isStop, isStem = isStem, filename = filename)
-    myAnswerSheet_corpus = AnswerSheet(isStop = isStop, isStem = isStem, filename = filename)
-    myAnswerSheet_20 = AnswerSheet(isStop = isStop, isStem = isStem, filename = filename)
+    myAnswerSheet_mixed = AnswerSheet(isStop = isStop, isStem = isStem, testFileName = filename)
+    myAnswerSheet_corpus = AnswerSheet(isStop = isStop, isStem = isStem, testFileName = filename)
+    myAnswerSheet_20 = AnswerSheet(isStop = isStop, isStem = isStem, testFileName = filename)
     
     for line in file:
         mLineNum = RLineNum.search(line)
@@ -272,7 +272,7 @@ def answer_Trigramsimple(isStop, isStem, filename):
                 if maxrate_corpus == 0:
                     myAnswerSheet_corpus.submitAnswer(None)
                 else:
-                    imax = CandRates_corpus.index(maxrate)
+                    imax = CandRates_corpus.index(maxrate_corpus)
                     myAnswer = Candidates[imax]            
                     myAnswerSheet_corpus.submitAnswer(myAnswer)
                         
@@ -281,7 +281,7 @@ def answer_Trigramsimple(isStop, isStem, filename):
                 if maxrate_20 == 0:
                     myAnswerSheet_20.submitAnswer(None)
                 else:
-                    imax = CandRates_20.index(maxrate)
+                    imax = CandRates_20.index(maxrate_20)
                     myAnswer = Candidates[imax]            
                     myAnswerSheet_20.submitAnswer(myAnswer)
         else:
@@ -300,7 +300,3 @@ def answer_Trigramsimple(isStop, isStem, filename):
     myAnswerSheet_20.printResult()
     myAnswerSheet_20.printToFile('20sentences')
     print('----------------------')
-
-
-
-        
