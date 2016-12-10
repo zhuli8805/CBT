@@ -9,6 +9,7 @@ import sys
 import time
 from pycorenlp import StanfordCoreNLP
 from os.path import basename, join, splitext
+from operator import itemgetter
 from glob import glob
 
 """
@@ -20,12 +21,11 @@ corenlp = StanfordCoreNLP('http://localhost:9000')
 corenlp_settings = {'annotators': 'tokenize,ssplit,pos,ner', "outputFormat": "text"}
 re_nlp_annotate = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
 re_punct = re.compile('^[^a-zA-Z]+$')
+re_t = re.compile('(\W+)\'([tT])')
 
-#pattern = 'cbtest_V*'
 pattern = 'test*'
 if len(sys.argv) > 1:
     pattern = sys.argv[1]
-#data_path = 'CBTest Datasets\CBTest\data'
 data_path = 'D:\Yixuan Li\Documents\TUoS\Industrial Team Project\CBTest\CoreNLP_tag_reader'
 
 file_in_list = glob(join(data_path, pattern))
@@ -81,8 +81,8 @@ def read_and_write(file_in, file_out, totalLines):
             else:
                 nextLineNo += stepLength
         if line.split():
-            output_list = get_nlp_tag(line)
-            file_out.write('\t'.join(output_list))
+            output_list = get_nlp_tag(special_prep(line))
+            file_out.write('\t'.join(output_list).replace('\'', ''))
         file_out.write('\n')
 
 
@@ -92,7 +92,7 @@ def get_nlp_tag(text):
     candidates = 0
     answer = 0
     if num == 21:
-        candidates = text_list.pop().split('|')
+        candidates = list(filter(None ,text_list.pop().split('|')))
         answer = text_list.pop()
     content = ' '.join(text_list)
     answer_pair = []
@@ -101,7 +101,8 @@ def get_nlp_tag(text):
     if num == 21:
         content_pair, missing_word_idx = identify_query_tag(content)
         candidates_pair_dict = identify_target_tag(content, candidates, missing_word_idx)
-        candidates_pair.append('|'.join([':'.join([x, y]) for x, y in candidates_pair_dict.items()]))
+        #candidates_pair.append('|'.join([':'.join([x, y]) for x, y in candidates_pair_dict.items()]))
+        candidates_pair.append('|'.join([':'.join(x) for x in sorted(candidates_pair_dict.items(), key=itemgetter(0))]))
         if answer not in candidates_pair_dict:
             candidates_pair_dict[answer] = 'ERR'
         answer_pair.append(':'.join([answer, candidates_pair_dict[answer]]))
@@ -159,7 +160,9 @@ def identify_missing_word_pos(split_content):
     for i in range(len(split_content) - 1):
         if split_content[i] == missing_word:
             return i
-
+            
+def special_prep(line):
+    return re_t.sub('\g<1>\g<2>', line)
 
 def main():
     display_files()
