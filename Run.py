@@ -6,6 +6,7 @@ Created on Mon Nov 28 16:22:50 2016
 """
 
 import _thread
+from add_pos_tag import addTag
 from AnswerSheet import AnswerSheet_oneTestFile
 from TrigramAnswer import answer_Trigram_simple, answer_Trigram_WP
 from TrigramSimple import Run_BuildData
@@ -18,23 +19,23 @@ testFiles = [
              'CBTest Datasets\CBTest\data\cbtest_V_test_2500ex.txt'
             ]
             
-def BuildDataSingleThreads():
+def BuildData_Simple_SingleThreads():
     for isStop in [True, False]:
         for isStem in [True, False]:
             for isRev in [True, False]:
                 Run_BuildData(isStop = isStop, isStem = isStem, isReversed = isRev)
 
-def BuildDataThread(isReversed, Nothing):
+def BuildData_Simple_Thread(isReversed, Nothing):
     Run_BuildData(isStop = False, isStem = False, isReversed = isReversed)
     Run_BuildData(isStop = False, isStem = True, isReversed = isReversed)
     Run_BuildData(isStop = True, isStem = False, isReversed = isReversed)
     Run_BuildData(isStop = True, isStem = True, isReversed = isReversed)
     
-def BuildDataTwoThreads():
-    _thread.start_new_thread(BuildDataThread, (True, True))
-    _thread.start_new_thread(BuildDataThread, (False, False))
+def BuildSimpleData_TwoThreads():
+    _thread.start_new_thread(BuildData_Simple_Thread, (True, True))
+    _thread.start_new_thread(BuildData_Simple_Thread, (False, False))
 
-def BuildDataMultiThreads():
+def BuildData_Simple_MultiThreads():
     for isstop in [True, False]:
         for isstem in [True, False]:
             for isrev in [True, False]:
@@ -63,8 +64,9 @@ def RunTestAll():
                 answerSheet.printToFile()
 
 if __name__ == '__main__':
-    #BuildDataSingleThreads()    
-    #BuildDataTwoThreads()    
-    #BuildDataMultiThreads()    
-    #BuildData_WP()  
+    addTag()
+#    BuildData_Simple_SingleThreads()    
+    BuildSimpleData_TwoThreads()    
+#    BuildData_Simple_MultiThreads()    
+    BuildData_WP()  
     RunTestAll()
