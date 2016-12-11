@@ -6,6 +6,43 @@ Created on Tue Nov 22 15:36:29 2016
 """
 import re
 
+def countLines(fileName):
+    i = 0 
+    file = open(fileName,'r')
+    for line in file:
+        i += 1
+    file.close()
+    return i
+
+class ShowProgress():
+    def __init__(self, fileName, partNum = 20):
+        self.totalLines = countLines(fileName)
+        self.iProgress = 0
+        self.partNum = partNum
+        self.stepLength = int(self.totalLines / self.partNum) 
+        self.iLine = 0
+        self.nextShowLine = self.stepLength
+        self.nextTenPercent = 1
+        self.tenPerLines = int(self.totalLines/10)
+        self.nextTenPerLine = self.tenPerLines - 1
+        
+    def update(self):
+        self.iLine += 1       
+        if self.iLine >= self.nextShowLine:
+            self.nextShowLine += self.stepLength
+            self.iProgress += 1
+            if self.iProgress == self.partNum:
+                print(' ok') # finishing
+                return
+            if self.iLine > self.nextTenPerLine:
+                while  self.iLine > self.nextTenPerLine:
+                    print(self.nextTenPercent, end = '')
+                    self.nextTenPercent += 1
+                    self.nextTenPerLine += self.tenPerLines
+            else:
+                print('.', end = '')
+            
+
 class ReadData():
     def __init__(self, filename, isTraining, pAnswerSheet):
         self.isTraining = isTraining
@@ -20,28 +57,14 @@ class ReadData():
             for line in self._ReadTestData():
                 yield line
     
-    def countLines(self):
-        i = 0 
-        TrainingData = open(self.filename,'r')
-        for line in TrainingData:
-            i += 1
-        TrainingData.close()
-        return i
+    def countLines(self):        
+        return countLines(self.filename)
         
-    def _ReadTrainingData(self):      
-#        print('Reading Training Data :\n %s' % (self.filename))
+    def _ReadTrainingData(self):
         TrainingData = open(self.filename,'r')
-#        Regex_BookTitle = re.compile('_BOOK_TITLE_ : (.+).txt.out')
         for line in TrainingData:
             # text line
             yield line
-            # book title line
-#            res_reg = Regex_BookTitle.search(line)
-#            if res_reg:
-#                filename_temp = self.filename.split('\\')
-#                filename_temp = filename_temp[len(filename_temp) - 1]
-##                print('Read Training Data[%s] :\n %s' % (filename_temp, res_reg.group(1)))
-#                continue            
         TrainingData.close()
 
     def _ReadTestData(self):
@@ -71,3 +94,5 @@ class ReadData():
             
                 continue
         TrainingData.close()
+
+    
