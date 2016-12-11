@@ -23,10 +23,10 @@ re_nlp_annotate = re.compile('\[Text=(\S+).*PartOfSpeech=(\S+)')
 re_punct = re.compile('^[^a-zA-Z]+$')
 re_t = re.compile('(\W+)\'([tT])')
 
-pattern = 'test*'
+pattern = 'cbtest_*'
 if len(sys.argv) > 1:
     pattern = sys.argv[1]
-data_path = 'D:\Yixuan Li\Documents\TUoS\Industrial Team Project\CBTest\CoreNLP_tag_reader'
+data_path = 'CBTest Datasets\CBTest\data'
 
 file_in_list = glob(join(data_path, pattern))
 file_out_list = []
@@ -164,10 +164,10 @@ def identify_missing_word_pos(split_content):
 def special_prep(line):
     return re_t.sub('\g<1>\g<2>', line)
 
-def main():
+def addTag():
     display_files()
     glob_CBT_files()
 
 
 if __name__ == '__main__':
-    main()
+    addTag()
